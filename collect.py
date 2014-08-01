@@ -1,20 +1,33 @@
 import urllib2
+
+from tweepy.streaming import StreamListener
+from tweepy import OAuthHandler
+from tweepy import Stream
+
 from settings import *
 
-ONEPERCENT_API_HEADERS = {'Authorization':'Token {0}'.format(ONEPERCENT_API_TOKEN)}
 
-# Latest donations
-donations_source_url = "{0}{1}".format(ONEPERCENT_SERVER, '/api/fund/latest-donations/')
-request = urllib2.Request(donations_source_url, headers=ONEPERCENT_API_HEADERS)
+class StdOutListener(StreamListener):
+    """ A listener handles tweets are the received from the stream.
+    This is a basic listener that just prints received tweets to stdout.
 
-response = urllib2.urlopen(request)
-donation_json = response.read()
+    """
+    def on_data(self, data):
+        print data
+        twitter_mention_url = "{0}{1}".format(STREAM_SERVER, '/api/twitter-mentions/')
+        # print twitter_mention_url
+        request = urllib2.Request(twitter_mention_url, data, {'Content-Type': 'application/json'})
+        urllib2.urlopen(request).read()
 
-donations_url = "{0}{1}".format(STREAM_SERVER, '/donations/')
-request = urllib2.Request(donations_url, donation_json, {'Content-Type': 'application/json'})
-urllib2.urlopen(request)
+        return True
 
-# donations_stream_url = "{0}{1}".format(STREAM_SERVER, '/donations/')
-# urllib2.Request()
+    def on_error(self, status):
+        print status
 
+if __name__ == '__main__':
+    l = StdOutListener()
+    auth = OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+    auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 
+    stream = Stream(auth, l)
+    stream.filter(track=['DevTeam1Percent', '1percentclub',])
